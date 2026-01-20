@@ -10,8 +10,6 @@ import net.liopyu.entityjs.entities.nonliving.entityjs.IProjectileEntityJS;
 import net.liopyu.entityjs.util.ContextUtils;
 import net.liopyu.entityjs.util.EntityJSHelperClass;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -24,118 +22,114 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 import java.util.Optional;
 
 public class SpellProjectileJS extends AbstractMagicProjectile implements IProjectileEntityJS, AntiMagicSusceptible {
-    public static record OnAntiMagicContext(MagicData getMagicData, Entity getEntity){}
+	public static record OnAntiMagicContext(MagicData getMagicData, Entity getEntity){}
 
-    public SpellProjectileJSBuilder builder;
+	public SpellProjectileJSBuilder builder;
 
-    private float damage;
+	private float damage;
 
-    public SpellProjectileJS(SpellProjectileJSBuilder builder, EntityType<? extends AbstractMagicProjectile> pEntityType, Level pLevel) {
-        super(pEntityType, pLevel);
-        this.builder = builder;
-    }
+	public SpellProjectileJS(SpellProjectileJSBuilder builder, EntityType<? extends AbstractMagicProjectile> pEntityType, Level pLevel) {
+		super(pEntityType, pLevel);
+		this.builder = builder;
+	}
 
-    @SuppressWarnings("unused")
-    public SpellProjectileJS(EntityType<? extends AbstractMagicProjectile> entityType, Level levelIn, LivingEntity shooter) {
-        super(entityType,levelIn);
-        setOwner(shooter);
-    }
-
-    @Override
-    public ProjectileEntityBuilder<?> getProjectileBuilder() {
-        return builder;
-    }
-
-
-    // New Overrides from AbstractMagicProjectile since the new ProjectileEntityBuilder allows for extending Projectile instead of only THrowableItemProjectile
-    public void setDamage(float damage) {
-        this.damage = damage;
-    }
-
-    public float getDamage() {
-        return this.damage;
-    }
-    @Override
-    public void trailParticles() {
-        if (builder.trailParticles != null) {
-            builder.trailParticles.accept(this);
-        }
-    }
-    public static class ImpactParticleContext {
-        public final SpellProjectileJS entity;
-        public final double x;
-        public final double y;
-        public final double z;
-        public ImpactParticleContext(SpellProjectileJS entity, double x, double y, double z) {
-            this.entity = entity;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-    }
-    @Override
-    public void impactParticles(double v, double v1, double v2) {
-        if (builder.impactParticles != null) {
-            final ImpactParticleContext context = new ImpactParticleContext(this,v,v1,v2);
-            builder.impactParticles.accept(context);
-        }
-    }
-    private float speed = 0;
-    public void setSpeed(float speed) {
-        this.speed = speed;
-    }
-    @Override
-    public float getSpeed() {
-        return speed;
-    }
-
-	@Override
-	protected void doImpactSound(Holder<SoundEvent> sound) {
-		super.doImpactSound(sound);
+	@SuppressWarnings("unused")
+	public SpellProjectileJS(EntityType<? extends AbstractMagicProjectile> entityType, Level levelIn, LivingEntity shooter) {
+		super(entityType,levelIn);
+		setOwner(shooter);
 	}
 
 	@Override
-    public Optional<Holder<SoundEvent>> getImpactSound() {
-        if (builder.setImpactSound != null) {
-            return Optional.of(Holder.direct(Objects.requireNonNull(BuiltInRegistries.SOUND_EVENT.get((ResourceLocation) builder.setImpactSound))));
-        }
-        return Optional.empty();
-    }
+	public ProjectileEntityBuilder<?> getProjectileBuilder() {
+		return builder;
+	}
+
+
+	// New Overrides from AbstractMagicProjectile since the new ProjectileEntityBuilder allows for extending Projectile instead of only THrowableItemProjectile
+	public void setDamage(float damage) {
+		this.damage = damage;
+	}
+
+	public float getDamage() {
+		return this.damage;
+	}
+	@Override
+	public void trailParticles() {
+		if (builder.trailParticles != null) {
+			builder.trailParticles.accept(this);
+		}
+	}
+	public static class ImpactParticleContext {
+		public final SpellProjectileJS entity;
+		public final double x;
+		public final double y;
+		public final double z;
+		public ImpactParticleContext(SpellProjectileJS entity, double x, double y, double z) {
+			this.entity = entity;
+			this.x = x;
+			this.y = y;
+			this.z = z;
+		}
+	}
+	@Override
+	public void impactParticles(double v, double v1, double v2) {
+		if (builder.impactParticles != null) {
+			final ImpactParticleContext context = new ImpactParticleContext(this,v,v1,v2);
+			builder.impactParticles.accept(context);
+		}
+	}
+	private float speed = 0;
+	public void setSpeed(float speed) {
+		this.speed = speed;
+	}
+	@Override
+	public float getSpeed() {
+		return speed;
+	}
+
+	@Override
+	public Optional<SoundEvent> getImpactSound() {
+		if (builder.setImpactSound != null) {
+			return Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue((ResourceLocation) builder.setImpactSound));
+		}
+		return Optional.empty();
+	}
 
 
 
-    @Override
-    public void onAntiMagic(MagicData playerMagicData) {
-        if (builder.onAntiMagic != null) {
-            ISSKJSUtils.safeCallback(builder.onAntiMagic, new OnAntiMagicContext(playerMagicData, this), "Error while calling onAntiMagic");
-        }
-    }
+	@Override
+	public void onAntiMagic(MagicData playerMagicData) {
+		if (builder.onAntiMagic != null) {
+			ISSKJSUtils.safeCallback(builder.onAntiMagic, new OnAntiMagicContext(playerMagicData, this), "Error while calling onAntiMagic");
+		}
+	}
 
-    @Override
-    public void addAdditionalSaveData(CompoundTag pCompound) {
-        super.addAdditionalSaveData(pCompound);
-        pCompound.putFloat("Damage", this.damage);
-    }
+	@Override
+	public void addAdditionalSaveData(CompoundTag pCompound) {
+		super.addAdditionalSaveData(pCompound);
+		pCompound.putFloat("Damage", this.damage);
+	}
 
-    @Override
-    public void readAdditionalSaveData(CompoundTag pCompound) {
-        super.readAdditionalSaveData(pCompound);
-        this.damage = pCompound.getFloat("Damage");
-    }
-    public String entityName() {
-        return this.getType().toString();
-    }
+	@Override
+	public void readAdditionalSaveData(CompoundTag pCompound) {
+		super.readAdditionalSaveData(pCompound);
+		this.damage = pCompound.getFloat("Damage");
+	}
+	public String entityName() {
+		return this.getType().toString();
+	}
 
-    @Override
-    public void shootFromRotation(Entity pShooter, float pX, float pY, float pZ, float pVelocity, float pInaccuracy) {
-        super.shootFromRotation(pShooter, pX, pY, pZ, pVelocity, pInaccuracy);
-    }
+	@Override
+	public void shootFromRotation(Entity pShooter, float pX, float pY, float pZ, float pVelocity, float pInaccuracy) {
+		super.shootFromRotation(pShooter, pX, pY, pZ, pVelocity, pInaccuracy);
+	}
 
 	//Base Entity Overrides
 	public boolean hurt(DamageSource pSource, float pAmount) {
@@ -148,10 +142,10 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	}
 
 	@Override
-	public void lerpTo(double x, double y, double z, float yaw, float pitch, int posRotationIncrements) {
-		super.lerpTo(x, y, z, yaw, pitch, posRotationIncrements);
+	public void lerpTo(double x, double y, double z, float yaw, float pitch, int posRotationIncrements, boolean teleport) {
+		super.lerpTo(x, y, z, yaw, pitch, posRotationIncrements, teleport);
 		if (builder != null && builder.lerpTo != null) {
-			final ContextUtils.LerpToContext context = new ContextUtils.LerpToContext(x, y, z, yaw, pitch, posRotationIncrements, this);
+			final ContextUtils.LerpToContext context = new ContextUtils.LerpToContext(x, y, z, yaw, pitch, posRotationIncrements, teleport, this);
 			EntityJSHelperClass.consumerCallback(builder.lerpTo, context, "[EntityJS]: Error in " + entityName() + "builder for field: lerpTo.");
 		}
 	}
@@ -184,11 +178,11 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	}
 
 	@Override
-	public void onRemovedFromLevel() {
+	public void onRemovedFromWorld() {
 		if (builder != null && builder.onRemovedFromWorld != null) {
 			EntityJSHelperClass.consumerCallback(builder.onRemovedFromWorld, this, "[EntityJS]: Error in " + entityName() + "builder for field: onRemovedFromWorld.");
 		}
-		super.onRemovedFromLevel();
+		super.onRemovedFromWorld();
 	}
 
 
@@ -212,8 +206,8 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 
 
 	@Override
-	public void onAddedToLevel() {
-		super.onAddedToLevel();
+	public void onAddedToWorld() {
+		super.onAddedToWorld();
 		if (builder != null && builder.onAddedToWorld != null && !this.level().isClientSide()) {
 			EntityJSHelperClass.consumerCallback(builder.onAddedToWorld, this, "[EntityJS]: Error in " + entityName() + "builder for field: onAddedToWorld.");
 		}
@@ -230,18 +224,10 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 
 	@Override
 	public void stopRiding() {
-		if (builder != null && builder.onStopRiding != null && this.isPassenger()) {
+		super.stopRiding();
+		if (builder != null && builder.onStopRiding != null) {
 			EntityJSHelperClass.consumerCallback(builder.onStopRiding, this, "[EntityJS]: Error in " + entityName() + "builder for field: onStopRiding.");
 		}
-		super.stopRiding();
-	}
-
-	@Override
-	protected void removePassenger(Entity p_20352_) {
-		if (builder.onRemovePassenger != null) {
-			EntityJSHelperClass.consumerCallback(builder.onRemovePassenger, this, "[EntityJS]: Error in " + entityName() + "builder for field: onRemovePassenger.");
-		}
-		super.removePassenger(p_20352_);
 	}
 
 
@@ -283,7 +269,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	public boolean shouldRenderAtSqrDistance(double distance) {
 		if (builder != null && builder.shouldRenderAtSqrDistance != null) {
 			final ContextUtils.EntitySqrDistanceContext context = new ContextUtils.EntitySqrDistanceContext(distance, this);
-			Object obj = builder.shouldRenderAtSqrDistance.test(context);
+			Object obj = builder.shouldRenderAtSqrDistance.apply(context);
 			if (obj instanceof Boolean b) return b;
 			EntityJSHelperClass.logErrorMessageOnce("[EntityJS]: Invalid shouldRenderAtSqrDistance for arrow builder: " + obj + ". Must be a boolean. Defaulting to super method: " + super.shouldRenderAtSqrDistance(distance));
 		}
@@ -335,11 +321,11 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	protected boolean canHitEntity(Entity entity) {
 		if (builder != null && builder.canHitEntity != null) {
-			Object obj = builder.canHitEntity.test(entity);
+			Object obj = builder.canHitEntity.apply(entity);
 			if (obj instanceof Boolean b) return super.canHitEntity(entity) && b;
 			EntityJSHelperClass.logErrorMessageOnce("[EntityJS]: Invalid canHitEntity for arrow builder: " + obj + ". Must be a boolean. Defaulting to super method: " + super.canHitEntity(entity));
 		}
-		return super.canHitEntity(entity);
+		return entity != getOwner() && super.canHitEntity(entity);
 	}
 
 
@@ -360,7 +346,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	public boolean canCollideWith(Entity pEntity) {
 		if (builder.canCollideWith != null) {
 			final ContextUtils.ECollidingEntityContext context = new ContextUtils.ECollidingEntityContext(this, pEntity);
-			Object obj = builder.canCollideWith.test(context);
+			Object obj = builder.canCollideWith.apply(context);
 			if (obj instanceof Boolean b) return b;
 			EntityJSHelperClass.logErrorMessageOnce("[EntityJS]: Invalid return value for canCollideWith from entity: " + entityName() + ". Value: " + obj + ". Must be a boolean. Defaulting to " + super.canCollideWith(pEntity));
 		}
@@ -406,7 +392,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 			return super.canAddPassenger(entity);
 		}
 		final ContextUtils.EPassengerEntityContext context = new ContextUtils.EPassengerEntityContext(entity, this);
-		Object obj = builder.canAddPassenger.test(context);
+		Object obj = builder.canAddPassenger.apply(context);
 		if (obj instanceof Boolean) {
 			return (boolean) obj;
 		}
@@ -418,7 +404,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	protected boolean isFlapping() {
 		if (builder.isFlapping != null) {
-			Object obj = builder.isFlapping.test(this);
+			Object obj = builder.isFlapping.apply(this);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -450,14 +436,14 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	protected SoundEvent getSwimSplashSound() {
 		if (builder.setSwimSplashSound == null) return super.getSwimSplashSound();
-		return Objects.requireNonNull(BuiltInRegistries.SOUND_EVENT.get((ResourceLocation) builder.setSwimSplashSound));
+		return Objects.requireNonNull(ForgeRegistries.SOUND_EVENTS.getValue((ResourceLocation) builder.setSwimSplashSound));
 	}
 
 
 	@Override
 	protected SoundEvent getSwimSound() {
 		if (builder.setSwimSound == null) return super.getSwimSound();
-		return Objects.requireNonNull(BuiltInRegistries.SOUND_EVENT.get((ResourceLocation) builder.setSwimSound));
+		return Objects.requireNonNull(ForgeRegistries.SOUND_EVENTS.getValue((ResourceLocation) builder.setSwimSound));
 
 	}
 
@@ -465,7 +451,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	public boolean canFreeze() {
 		if (builder.canFreeze != null) {
-			Object obj = builder.canFreeze.test(this);
+			Object obj = builder.canFreeze.apply(this);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -478,7 +464,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	public boolean isFreezing() {
 		if (builder.isFreezing != null) {
-			Object obj = builder.isFreezing.test(this);
+			Object obj = builder.isFreezing.apply(this);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -491,7 +477,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	public boolean isCurrentlyGlowing() {
 		if (builder.isCurrentlyGlowing != null && !this.level().isClientSide()) {
-			Object obj = builder.isCurrentlyGlowing.test(this);
+			Object obj = builder.isCurrentlyGlowing.apply(this);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -504,7 +490,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	public boolean dampensVibrations() {
 		if (builder.dampensVibrations != null) {
-			Object obj = builder.dampensVibrations.test(this);
+			Object obj = builder.dampensVibrations.apply(this);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -516,7 +502,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	@Override
 	public boolean showVehicleHealth() {
 		if (builder.showVehicleHealth != null) {
-			Object obj = builder.showVehicleHealth.test(this);
+			Object obj = builder.showVehicleHealth.apply(this);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -530,7 +516,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	public boolean isInvulnerableTo(DamageSource p_20122_) {
 		if (builder.isInvulnerableTo != null) {
 			final ContextUtils.EDamageContext context = new ContextUtils.EDamageContext(this, p_20122_);
-			Object obj = builder.isInvulnerableTo.test(context);
+			Object obj = builder.isInvulnerableTo.apply(context);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -541,16 +527,15 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 
 
 	@Override
-	public boolean canChangeDimensions(Level to, Level from) {
+	public boolean canChangeDimensions() {
 		if (builder.canChangeDimensions != null) {
-			final ContextUtils.ChangeDimensionsContext context = new ContextUtils.ChangeDimensionsContext(this, to, from);
-			Object obj = builder.canChangeDimensions.test(context);
+			Object obj = builder.canChangeDimensions.apply(this);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
-			EntityJSHelperClass.logErrorMessageOnce("[EntityJS]: Invalid return value for canChangeDimensions from entity: " + entityName() + ". Value: " + obj + ". Must be a boolean. Defaulting to " + super.canChangeDimensions(to, from));
+			EntityJSHelperClass.logErrorMessageOnce("[EntityJS]: Invalid return value for canChangeDimensions from entity: " + entityName() + ". Value: " + obj + ". Must be a boolean. Defaulting to " + super.canChangeDimensions());
 		}
-		return super.canChangeDimensions(to, from);
+		return super.canChangeDimensions();
 	}
 
 
@@ -558,7 +543,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	public boolean mayInteract(@NotNull Level p_146843_, @NotNull BlockPos p_146844_) {
 		if (builder.mayInteract != null) {
 			final ContextUtils.EMayInteractContext context = new ContextUtils.EMayInteractContext(p_146843_, p_146844_, this);
-			Object obj = builder.mayInteract.test(context);
+			Object obj = builder.mayInteract.apply(context);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -573,7 +558,7 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 	public boolean canTrample(@NotNull BlockState state, @NotNull BlockPos pos, float fallDistance) {
 		if (builder.canTrample != null) {
 			final ContextUtils.ECanTrampleContext context = new ContextUtils.ECanTrampleContext(state, pos, fallDistance, this);
-			Object obj = builder.canTrample.test(context);
+			Object obj = builder.canTrample.apply(context);
 			if (obj instanceof Boolean) {
 				return (boolean) obj;
 			}
@@ -592,5 +577,4 @@ public class SpellProjectileJS extends AbstractMagicProjectile implements IProje
 		EntityJSHelperClass.logErrorMessageOnce("[EntityJS]: Invalid return value for setMaxFallDistance from entity: " + entityName() + ". Value: " + builder.setMaxFallDistance.apply(this) + ". Must be an integer. Defaulting to " + super.getMaxFallDistance());
 		return super.getMaxFallDistance();
 	}
-
 }

@@ -9,16 +9,15 @@ import net.minecraft.world.entity.PathfinderMob;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 @SuppressWarnings("unused")
 public abstract class SpellCastingMobBuilder<T extends PathfinderMob & IAnimatableJS> extends PathfinderMobBuilder<T> {
-    public transient Consumer<LivingEntity> onCancelledCast;
-    public transient Predicate<LivingEntity> isCasting;
+	public transient Consumer<LivingEntity> onCancelledCast;
+	public transient Function<LivingEntity, Object> isCasting;
 
-    public SpellCastingMobBuilder(ResourceLocation i) {
-        super(i);
-    }
+	public SpellCastingMobBuilder(ResourceLocation i) {
+		super(i);
+	}
 	@Info(value = """
             Sets a callback function to determine whether the entity is currently casting.
                         
@@ -29,12 +28,12 @@ public abstract class SpellCastingMobBuilder<T extends PathfinderMob & IAnimatab
             });
             ```
             """)
-    public SpellCastingMobBuilder<T> isCasting(Predicate<LivingEntity> isCasting){
-        this.isCasting = isCasting;
-        return this;
-    }
+	public SpellCastingMobBuilder<T> isCasting(Function<LivingEntity, Object> isCasting){
+		this.isCasting = isCasting;
+		return this;
+	}
 
-    @Info(value = """
+	@Info(value = """
             Sets a callback function to be executed when the entity stops casting a spell.
                         
             Example usage:
@@ -44,8 +43,8 @@ public abstract class SpellCastingMobBuilder<T extends PathfinderMob & IAnimatab
             });
             ```
             """)
-    public SpellCastingMobBuilder<T> onCancelledCast(Consumer<LivingEntity> onCancelledCast){
-        this.onCancelledCast = onCancelledCast;
-        return this;
-    }
+	public SpellCastingMobBuilder<T> onCancelledCast(Consumer<LivingEntity> onCancelledCast){
+		this.onCancelledCast = onCancelledCast;
+		return this;
+	}
 }

@@ -1,172 +1,250 @@
-import org.gradle.plugins.ide.idea.model.IdeaLanguageLevel
-
+import org.gradle.api.tasks.compile.JavaCompile
+import java.text.SimpleDateFormat as JSdf
+import java.util.Date as JDate
 plugins {
-    java
+    eclipse
     idea
     `maven-publish`
-    id("net.neoforged.moddev") version "2.0.74"
+    id("net.minecraftforge.gradle") version "6.0.+"
+    id("org.parchmentmc.librarian.forgegradle") version "1.+"
+    id("org.spongepowered.mixin") version "0.7.+"
 }
 
-val minecraftVersion: String by project
-val minecraftVersionRange: String by project
-val neoVersion: String by project
-val neoVersionRange: String by project
-val loaderVersionRange: String by project
-
-val modId: String by project
-val modName: String by project
-val modLicense: String by project
-val modVersion: String by project
-val modGroupId: String by project
-val modAuthors: String by project
-val modDescription: String by project
-
-val rhino_version: String by project
-val ironsSpellbooksVersion: String by project
-val ironsSpellbooksFileId: String by project
-val kubejsVersion: String by project
-
-repositories {
-    mavenLocal()
-    maven("https://maven.latvian.dev/releases")
-    maven("https://code.redspace.io/releases")
-    maven("https://maven.kosmx.dev/")
-    maven("https://www.cursemaven.com")
-    maven {
-        // saps.dev Maven (KubeJS and Rhino)
-        url = uri("https://maven.latvian.dev/releases")
-        content {
-            includeGroup("dev.latvian.mods")
-            includeGroup("dev.latvian.apps")
-        }
-    }
-    maven {
-        url = uri("https://jitpack.io")
-        content {
-            includeGroup("com.github.rtyley")
-        }
-    }
-    maven {
-        setUrl("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
-        content {
-            includeGroup("software.bernie.geckolib")
-        }
-    }
-    flatDir {
-        dir("libs")
-    }
-}
+version = "${property("minecraft_version")}-${property("mod_version")}-release"
+group = property("mod_group_id").toString()
 
 base {
-    archivesName = modId
-    version = modVersion
-    group = modGroupId
+    archivesName.set(property("mod_id").toString())
 }
 
-neoForge {
-    version = neoVersion
-    validateAccessTransformers = true
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+println(
+    "Java: ${System.getProperty("java.version")}, JVM: ${System.getProperty("java.vm.version")} (${System.getProperty("java.vendor")}), Arch: ${System.getProperty("os.arch")}"
+)
+
+minecraft {
+    mappings(property("mapping_channel").toString(), property("mapping_version").toString())
+
+    accessTransformer(file("src/main/resources/META-INF/accesstransformer.cfg"))
+
+    copyIdeResources.set(true)
 
     runs {
-        register("gameTestServer") {
-            server()
-            systemProperty("neoforge.enabledGameTestNamespaces", modId)
+        create("client") {
+            workingDirectory(project.file("run"))
+
+            property("forge.logging.markers", "REGISTRIES")
+            property("forge.logging.console.level", "debug")
+            property("forge.enabledGameTestNamespaces", property("mod_id").toString())
+            property("production", "true")
+
+            if (project.hasProperty("mc_uuid")) {
+                args("--uuid", project.property("mc_uuid").toString())
+            }
+            if (project.hasProperty("mc_username")) {
+                args("--username", project.property("mc_username").toString())
+            }
+            if (project.hasProperty("mc_accessToken")) {
+                args("--accessToken", project.property("mc_accessToken").toString())
+            }
+
+            mods {
+                create(property("mod_id").toString()) {
+                    source(sourceSets.main.get())
+                }
+            }
         }
-        register("client") {
-            client()
+
+        create("server") {
+            workingDirectory(project.file("run"))
+
+            property("forge.logging.markers", "REGISTRIES")
+            property("forge.logging.console.level", "debug")
+            property("forge.enabledGameTestNamespaces", property("mod_id").toString())
+            property("production", "true")
+
+            mods {
+                create(property("mod_id").toString()) {
+                    source(sourceSets.main.get())
+                }
+            }
         }
-        register("data") {
-            data()
+
+        create("gameTestServer") {
+            workingDirectory(project.file("run"))
+
+            property("forge.logging.markers", "REGISTRIES")
+            property("forge.logging.console.level", "debug")
+            property("forge.enabledGameTestNamespaces", property("mod_id").toString())
+
+            mods {
+                create(property("mod_id").toString()) {
+                    source(sourceSets.main.get())
+                }
+            }
         }
-        register("server") {
-            server()
-        }
-        configureEach {
-            jvmArgument("-XX:+IgnoreUnrecognizedVMOptions")
-            jvmArgument("-XX:+AllowEnhancedClassRedefinition")
-            if (type.get() == "client") {
-                programArguments.addAll("--width", "1920", "--height", "1080")
+
+        create("data") {
+            workingDirectory(project.file("run"))
+
+            property("forge.logging.markers", "REGISTRIES")
+            property("forge.logging.console.level", "debug")
+
+            args(
+                "--mod", property("mod_id").toString(),
+                "--all",
+                "--output", file("src/generated/resources/").absolutePath,
+                "--existing", file("src/main/resources/").absolutePath
+            )
+
+            mods {
+                create(property("mod_id").toString()) {
+                    source(sourceSets.main.get())
+                }
             }
         }
     }
+}
 
-    mods {
-        register(modId) {
-            sourceSet(sourceSets.main.get())
-        }
+sourceSets {
+    main {
+        resources.srcDir("src/generated/resources")
     }
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+repositories {
+    mavenCentral()
 
+    maven {
+        url = uri("https://maven.latvian.dev/releases")
+        content { includeGroup("dev.latvian.mods") }
+    }
+    maven { url = uri("https://maven.architectury.dev") }
+    maven {
+        url = uri("https://cursemaven.com")
+        content { includeGroup("curse.maven") }
+    }
+    maven {
+        name = "Iron's Maven"
+        url = uri("https://code.redspace.io/releases")
+    }
+
+    maven { url = uri("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/") }
+    maven { url = uri("https://maven.theillusivec4.top") }
+    maven { url = uri("https://maven.blamejared.com") }
+    maven { url = uri("https://maven.kosmx.dev/") }
+}
+
+mixin {
+    add(sourceSets.main.get(), "${property("mod_id")}.refmap.json")
+    config("${property("mod_id")}.mixins.json")
+}
 dependencies {
-    implementation(accessTransformers(interfaceInjectionData("dev.latvian.mods:kubejs-neoforge:$kubejsVersion")!!)!!)
+    "minecraft"("net.minecraftforge:forge:${property("minecraft_version")}-${property("forge_version")}")
 
-    implementation("io.redspace:irons_spellbooks:$ironsSpellbooksVersion")
-    runtimeOnly("dev.kosmx.player-anim:player-animation-lib-forge:2.0.1+1.21.1")
-    implementation("curse.maven:curios-309927:6401872") // curios-neoforge-9.4.2+1.21.1.jar
-    runtimeOnly("curse.maven:caelus-308989:5442975") // caelus-neoforge-7.0.0+1.21.jar
-    implementation("curse.maven:geckolib-388172:7023453") // geckolib-neoforge-1.21.1-4.7.5.1.jar
-    implementation("curse.maven:entityjs-967617:7127692")
-    implementation("dev.latvian.mods:rhino:$rhino_version")
-    runtimeOnly("curse.maven:jei-238222:7229074")
+    annotationProcessor("org.spongepowered:mixin:${property("mixin_version")}:processor")
 
-//    runtimeOnly("curse.maven:emi-580555:6205506")
-//    runtimeOnly("curse.maven:tmrv-1194921:6269681")
-    runtimeOnly("curse.maven:jade-324717:5591256")
-    runtimeOnly("curse.maven:probejs-585406:7105159")
+    implementation(fg.deobf("dev.latvian.mods:kubejs-forge:${property("kubejs_version")}"))
+    implementation(fg.deobf("dev.latvian.mods:rhino-forge:${property("rhino_version")}"))
+    implementation(fg.deobf("dev.architectury:architectury-forge:${property("architectury_version")}"))
+    implementation(fg.deobf("io.redspace.ironsspellbooks:irons_spellbooks:${property("minecraft_version")}-${property("irons_spells_version")}"))
+    implementation(fg.deobf("top.theillusivec4.curios:curios-forge:${property("curios_version")}"))
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("net.neoforged:testframework:$neoVersion")
+    compileOnly(fg.deobf("curse.maven:entityjs-967617:${property("entityjs_file_id")}"))
+    compileOnly(fg.deobf("software.bernie.geckolib:geckolib-forge-${property("minecraft_version")}:${property("geckolib_version")}"))
+    compileOnly(fg.deobf("curse.maven:probejs-585406:5227399"))
+
+    runtimeOnly(fg.deobf("software.bernie.geckolib:geckolib-forge-${property("minecraft_version")}:${property("geckolib_version")}"))
+    runtimeOnly(fg.deobf("top.theillusivec4.caelus:caelus-forge:${property("caelus_version")}"))
+    runtimeOnly(fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${property("player_animator_version")}"))
+    runtimeOnly(fg.deobf("curse.maven:entityjs-967617:${property("entityjs_file_id")}"))
+
+    runtimeOnly(fg.deobf("mezz.jei:jei-${property("jei_mc_version")}-forge:${property("jei_version")}"))
+
+    compileOnly("io.github.llamalad7:mixinextras-common:0.4.1")
+    annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1")
+
+    val mixinExtrasForgeDep = jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")
+        ?: error("jarJar() returned null for mixinextras-forge")
+
+    implementation(mixinExtrasForgeDep)
+    jarJar.ranged(mixinExtrasForgeDep, "[0.4.1,)")
+
+    implementation("org.reflections:reflections:0.10.2")
+    implementation("org.javassist:javassist:3.20.0-GA")
 }
 
-tasks {
-    processResources {
-        val replaceProperties = mapOf(
-            "minecraft_version" to minecraftVersion,
-            "minecraft_version_range" to minecraftVersionRange,
-            "neo_version" to neoVersion,
-            "neo_version_range" to neoVersionRange,
-            "loader_version_range" to loaderVersionRange,
-            "mod_id" to modId,
-            "mod_name" to modName,
-            "mod_license" to modLicense,
-            "mod_version" to modVersion,
-            "mod_authors" to modAuthors,
-            "mod_description" to modDescription,
-            "irons_spellbooks_version" to ironsSpellbooksVersion,
-            "kubejs_version" to kubejsVersion
-        )
 
-        inputs.properties(replaceProperties)
-        filesMatching(listOf("META-INF/neoforge.mods.toml")) {
-            expand(replaceProperties)
-        }
+val resourceTargets = listOf("META-INF/mods.toml", "pack.mcmeta")
+
+val replaceProperties: Map<String, String> = mapOf(
+    "minecraft_version" to property("minecraft_version").toString(),
+    "minecraft_version_range" to property("minecraft_version_range").toString(),
+    "forge_version" to property("forge_version").toString(),
+    "forge_version_range" to property("forge_version_range").toString(),
+    "loader_version_range" to property("loader_version_range").toString(),
+    "mod_id" to property("mod_id").toString(),
+    "mod_name" to property("mod_name").toString(),
+    "mod_license" to property("mod_license").toString(),
+    "mod_version" to property("mod_version").toString(),
+    "mod_authors" to property("mod_authors").toString(),
+    "mod_description" to property("mod_description").toString(),
+    "entityjs_version_range" to property("entityjs_version_range").toString(),
+    "curios_version_range" to property("curios_version_range").toString(),
+    "irons_spellbooks_version_range" to property("irons_spellbooks_version_range").toString()
+)
+
+tasks.processResources {
+    inputs.properties(replaceProperties)
+    filesMatching(resourceTargets) {
+        expand(replaceProperties)
     }
-    compileJava {
-        options.encoding = "UTF-8"
+}
+
+val modId = providers.gradleProperty("mod_id").get()
+val modAuthors = providers.gradleProperty("mod_authors").get()
+val modVersion = providers.gradleProperty("mod_version").get()
+
+tasks.jar {
+    manifest {
+        attributes(
+            mapOf(
+                "Specification-Title" to modId,
+                "Specification-Vendor" to modAuthors,
+                "Specification-Version" to "1",
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to modVersion,
+                "Implementation-Vendor" to modAuthors,
+                "Implementation-Timestamp" to JSdf("yyyy-MM-dd'T'HH:mm:ssZ").format(JDate())
+            )
+        )
     }
+}
+
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    options.compilerArgs.add("-parameters")
+}
+
+tasks.named("jar") {
+    finalizedBy("reobfJar")
 }
 
 publishing {
     publications {
-        register<MavenPublication>("mavenJava") {
-            from(components.getByName("java"))
+        create<MavenPublication>("mavenJava") {
+            artifact(tasks.jar.get())
         }
     }
     repositories {
-        maven("file://$projectDir/repo")
-    }
-}
-
-idea {
-    module {
-        isDownloadSources = true
-        isDownloadJavadoc = true
-    }
-    project {
-        jdkName = "${java.sourceCompatibility}"
-        languageLevel = IdeaLanguageLevel(java.sourceCompatibility)
+        maven {
+            url = uri("file://${project.projectDir}/mcmodsrepo")
+        }
     }
 }

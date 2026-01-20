@@ -7,12 +7,9 @@ import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
 import dev.latvian.mods.kubejs.registry.BuilderTypeRegistry;
 import net.minecraft.core.registries.Registries;
 
-public class EntityJSPlugin implements KubeJSPlugin {
-    @Override
-	public void registerBuilderTypes(BuilderTypeRegistry registry) {
-		registry.of(Registries.ENTITY_TYPE, reg -> {
-			reg.add(IronsSpellsJSMod.id("spellcasting"), SpellCastingMobJSBuilder.class, SpellCastingMobJSBuilder::new);
-			reg.add(IronsSpellsJSMod.id("spell_projectile"), SpellProjectileJSBuilder.class, SpellProjectileJSBuilder::new);
-		});
-	}
+public class EntityJSPlugin extends KubeJSPlugin {
+	@Override
+	public void init() {
+		RegistryInfo.ENTITY_TYPE.addType(IronsSpellsJSMod.MODID + ":spellcasting", SpellCastingMobJSBuilder.class, SpellCastingMobJSBuilder::new);
+		RegistryInfo.ENTITY_TYPE.addType(IronsSpellsJSMod.MODID + ":spell_projectile", SpellProjectileJSBuilder.class, SpellProjectileJSBuilder::new);    }
 }

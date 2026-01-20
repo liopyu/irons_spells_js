@@ -8,26 +8,26 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 
 public class SpellCastingMobJSBuilder extends SpellCastingMobBuilder<SpellCastingMobJS> {
 
-    public SpellCastingMobJSBuilder(ResourceLocation i) {
-        super(i);
-    }
+	public SpellCastingMobJSBuilder(ResourceLocation i) {
+		super(i);
+	}
 
-    @Override
-    public EntityType.EntityFactory<SpellCastingMobJS> factory() {
-        return (type, level) -> new SpellCastingMobJS(this, type, level);
-    }
+	@Override
+	public EntityType.EntityFactory<SpellCastingMobJS> factory() {
+		return (type, level) -> new SpellCastingMobJS(this, type, level);
+	}
 
-    @Override
-    public AttributeSupplier.Builder getAttributeBuilder() {
-        return SpellCastingMobJS.createMobAttributes()
-                .add(Attributes.MAX_HEALTH)
-                .add(Attributes.FOLLOW_RANGE)
-                .add(Attributes.ATTACK_DAMAGE)
-                .add(Attributes.ARMOR)
-                .add(Attributes.ARMOR_TOUGHNESS)
-                .add(Attributes.ATTACK_SPEED)
-                .add(Attributes.ATTACK_KNOCKBACK)
-                .add(Attributes.LUCK)
-                .add(Attributes.MOVEMENT_SPEED);
-    }
+	@Override
+	public AttributeSupplier.Builder getAttributeBuilder() {
+		return SpellCastingMobJS.createMobAttributes()
+			.add(Attributes.MAX_HEALTH)
+			.add(Attributes.FOLLOW_RANGE)
+			.add(Attributes.ATTACK_DAMAGE)
+			.add(Attributes.ARMOR)
+			.add(Attributes.ARMOR_TOUGHNESS)
+			.add(Attributes.ATTACK_SPEED)
+			.add(Attributes.ATTACK_KNOCKBACK)
+			.add(Attributes.LUCK)
+			.add(Attributes.MOVEMENT_SPEED);
+	}
 }
